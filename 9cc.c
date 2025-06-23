@@ -23,12 +23,31 @@ struct Token {
 };
 
 Token *currentToken;
+char *user_input;
 
 //  エラーを報告するための関数
 //  printfと同じ引数を取る
 void error(char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
+    vfprintf(stderr, fmt, ap);
+    fprintf(stderr, "\n");
+    exit(1);
+}
+
+//  エラー個所を報告する関数
+void error_at(char *loc, char *fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+
+    //  エラー個所を計算
+    int pos = loc - user_input;
+    fprintf(stderr, "%s\n", user_input);
+    //  空白をエラー対象の位置まで追加
+    fprintf(stderr, "%*s", pos, " ");
+    //  エラー対象の位置を指す
+    fprintf(stderr, "^ ");
+
     vfprintf(stderr, fmt, ap);
     fprintf(stderr, "\n");
     exit(1);
@@ -50,11 +69,11 @@ bool consume(char op) {
     return true;
 }
 
-void expect(char op){
-  if(currentToken->kind != TK_RESERVED || currentToken->str[0] != op){
-    error("expected %c",op);
-  }
-  currentToken = currentToken->next;
+void expect(char op) {
+    if (currentToken->kind != TK_RESERVED || currentToken->str[0] != op) {
+        error_at(currentToken->str, "expected %c", op);
+    }
+    currentToken = currentToken->next;
 }
 
 //  次のトークンが数値の場合、トークンを1つ読み進めてその数値を返す
@@ -62,7 +81,7 @@ void expect(char op){
 int expect_number() {
     //  カレントトークンが数ではない場合
     if (currentToken->kind != TK_NUM) {
-        error("数ではありません");
+        error_at(currentToken->str, "数ではありません");
     }
 
     //  数値であることが確定しているので、数値を取得
@@ -92,7 +111,9 @@ Token *new_token(TokenKind kind, Token *cur, char *str) {
 }
 
 //  入力文字列pをトークナイズしてそれを返す
-Token *tokenize(char *p) {
+Token *tokenize() {
+    char *p = user_input;
+
     Token head;
     head.next = NULL;
     Token *cur = &head;
@@ -119,7 +140,7 @@ Token *tokenize(char *p) {
         }
 
         //  それ以外は現状トークナイズできないのでエラー
-        error("トークナイズできません");
+        error_at(p, "トークナイズできません");
     }
 
     //  終了文字
@@ -134,8 +155,10 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    //  入力を保持する
+    user_input = argv[1];
     //  トークナイズする
-    currentToken = tokenize(argv[1]);
+    currentToken = tokenize();
 
     //  アセンブリの前半部分を出力
     printf(".intel_syntax noprefix\n");
