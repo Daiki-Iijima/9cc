@@ -50,6 +50,13 @@ bool consume(char op) {
     return true;
 }
 
+void expect(char op){
+  if(currentToken->kind != TK_RESERVED || currentToken->str[0] != op){
+    error("expected %c",op);
+  }
+  currentToken = currentToken->next;
+}
+
 //  次のトークンが数値の場合、トークンを1つ読み進めてその数値を返す
 //  それ以外の場合にはエラーを報告する
 int expect_number() {
@@ -118,13 +125,12 @@ Token *tokenize(char *p) {
     //  終了文字
     new_token(TK_EOF, cur, p);
 
-    //
     return head.next;
 }
 
 int main(int argc, char **argv) {
     if (argc != 2) {
-        fprintf(stderr, "引数の個数が正しくありません");
+        fprintf(stderr, "引数の個数が正しくありません\n");
         return 1;
     }
 
@@ -146,10 +152,8 @@ int main(int argc, char **argv) {
             continue;
         }
 
-        consume('-');
+        expect('-');
         printf("  sub rax, %d\n", expect_number());
-
-        return 1;
     }
 
     printf(" ret\n");
